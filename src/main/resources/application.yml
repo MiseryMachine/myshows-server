@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: myshows-service
+server:
+  port: 5000
