@@ -5,10 +5,11 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.rjs.myshows.server.domain.entity.ShowEntity;
 
-public interface ShowRepository extends JpaRepository<ShowEntity, Long> {
+public interface ShowRepository extends JpaRepository<ShowEntity, Long>, JpaSpecificationExecutor<ShowEntity> {
 	Optional<ShowEntity> findByMdbId(String mdbId);
 	Optional<ShowEntity> findByImdbId(String imdbId);
 

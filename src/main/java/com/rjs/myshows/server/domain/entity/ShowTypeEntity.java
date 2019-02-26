@@ -22,6 +22,11 @@ public class ShowTypeEntity extends JpaBaseEntity implements ShowType {
 	@Column(name = "genre")
 	private Set<String> genres = new HashSet<>();
 
+	@ElementCollection(fetch = FetchType.EAGER)
+	@CollectionTable(name = "show_type_rating", joinColumns = @JoinColumn(name = "show_type_id"))
+	@Column(name = "rating")
+	private Set<String> ratings = new HashSet<>();
+
 	public ShowTypeEntity() {
 	}
 
@@ -38,5 +43,20 @@ public class ShowTypeEntity extends JpaBaseEntity implements ShowType {
 	@Override
 	public boolean hasGenre(String genre) {
 		return genres.contains(genre);
+	}
+
+	@Override
+	public void addRating(String rating) {
+		ratings.add(rating);
+	}
+
+	@Override
+	public void removeRating(String rating) {
+		ratings.remove(rating);
+	}
+
+	@Override
+	public boolean hasRating(String rating) {
+		return ratings.contains(rating);
 	}
 }
