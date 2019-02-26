@@ -1,5 +1,6 @@
 package com.rjs.myshows.server.domain.entity;
 
+import javax.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -9,8 +10,16 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ShowTypeEntity extends BaseEntity implements ShowType {
+//@Document(collection = "show-type")
+@Entity
+@Table(name = "show_type")
+public class ShowTypeEntity extends JpaBaseEntity implements ShowType {
+	@Column(unique = true, nullable = false)
 	private String name;
+
+	@ElementCollection(fetch = FetchType.EAGER)
+	@CollectionTable(name = "show_type_genre", joinColumns = @JoinColumn(name = "show_type_id"))
+	@Column(name = "genre")
 	private Set<String> genres = new HashSet<>();
 
 	public ShowTypeEntity() {

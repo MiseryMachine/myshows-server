@@ -31,9 +31,12 @@ public class RestWebSecurityConfigurerAdapter extends WebSecurityConfigurerAdapt
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
 		http.authorizeRequests()
-			.antMatchers("/admin/**").access("hasRole('ROLE_ADMIN')")
+			.antMatchers("/admin/**").access("hasRole('ADMIN')")
+			.antMatchers("/**").access("hasRole('USER')")
+//			.antMatchers("/*").permitAll()
 			.anyRequest().authenticated()
 			.and()
+			.csrf().disable()
 			.httpBasic()
 			.authenticationEntryPoint(restAuthenticationEntryPoint);
 

@@ -1,9 +1,7 @@
 package com.rjs.myshows.server.service;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.lang.reflect.Type;
+import java.util.*;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -11,8 +9,8 @@ import org.springframework.stereotype.Service;
 import com.rjs.myshows.domain.dto.ShowTypeDto;
 import com.rjs.myshows.server.domain.entity.ShowTypeEntity;
 import com.rjs.myshows.server.repository.ShowTypeRepository;
-import org.apache.commons.lang3.StringUtils;
 import org.modelmapper.ModelMapper;
+import org.modelmapper.TypeToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +25,7 @@ public class ShowTypeService extends AbstractService<ShowTypeEntity, ShowTypeDto
 		this.showTypeRepository = showTypeRepository;
 	}
 
-	public Optional<ShowTypeEntity> findById(String id) {
+	public Optional<ShowTypeEntity> findById(Long id) {
 		return showTypeRepository.findById(id);
 	}
 
@@ -51,30 +49,68 @@ public class ShowTypeService extends AbstractService<ShowTypeEntity, ShowTypeDto
 		return showTypeRepository.save(showType);
 	}
 
+	public List<ShowTypeEntity> saveAll(Collection<ShowTypeEntity> showTypes) {
+		return showTypeRepository.saveAll(showTypes);
+	}
+
 	@Override
-	public ShowTypeDto convertToDto(ShowTypeEntity entity) {
-		return modelMapper.map(entity, ShowTypeDto.class);
+	public ShowTypeDto convertToDto(ShowTypeEntity showTypeEntity) {
+		return showTypeEntity != null ? modelMapper.map(showTypeEntity, ShowTypeDto.class) : null;
+	}
+
+	@Override
+	public List<ShowTypeDto> convertToDto(List<ShowTypeEntity> showTypeEntities) {
+		if (showTypeEntities == null || showTypeEntities.isEmpty()) {
+			return new ArrayList<>();
+		}
+
+		Type dtoListType = new TypeToken<List<ShowTypeDto>>() {}.getType();
+
+		return modelMapper.map(showTypeEntities, dtoListType);
 	}
 
 	@Override
 	public ShowTypeEntity convertToEntity(ShowTypeDto showTypeDto) {
-		ShowTypeEntity showType;
-
-		if (StringUtils.isBlank(showTypeDto.getId())) {
-			showType = new ShowTypeEntity();
+		if (showTypeDto == null) {
+			return null;
 		}
-		else {
+
+		ShowTypeEntity showTypeEntity = new ShowTypeEntity();
+
+		if (showTypeDto.getId() != null) {
 			Optional<ShowTypeEntity> opt = findById(showTypeDto.getId());
 
 			if (opt.isPresent()) {
-				showType = opt.get();
+				showTypeEntity = opt.get();
 			}
 			else {
+				logger.warn(String.format("Show type entity with id %d does not exist in datasource.", showTypeDto.getId()));
+
 				return null;
 			}
 		}
 
-		modelMapper.map(showTypeDto, showType);
-		return showType;
+		modelMapper.map(showTypeDto, showTypeEntity);
+
+		return showTypeEntity;
+	}
+
+	@Override
+	public List<ShowTypeEntity> convertToEntity(List<ShowTypeDto> showTypeDtos) {
+		if (showTypeDtos == null || showTypeDtos.isEmpty()) {
+			return new ArrayList<>();
+		}
+
+		final List<ShowTypeEntity> showTypeEntities = new ArrayList<>();
+
+		showTypeDtos.forEach(dto -> {
+			ShowTypeEntity showTypeEntity = convertToEntity(dto);
+
+			if (showTypeEntity != null) {
+				showTypeEntities.add(showTypeEntity);
+			}
+		});
+
+		return showTypeEntities;
 	}
 }

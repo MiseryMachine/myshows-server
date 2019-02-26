@@ -1,5 +1,11 @@
 spring:
   application:
     name: myshows-service
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
 server:
   port: 5000
+logging:
+  level:
+    root: debug

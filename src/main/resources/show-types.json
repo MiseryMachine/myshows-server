@@ -1,0 +1,31 @@
+[
+  {
+    "name": "Movie",
+    "genres": [
+      "Action",
+      "Adventure",
+      "Comedy",
+      "Drama",
+      "Documentary",
+      "Horror",
+      "Romance",
+      "Western",
+      "War"
+    ]
+  },
+  {
+    "name": "TV",
+    "genres": [
+      "Action",
+      "Adventure",
+      "Comedy",
+      "Sit-Com",
+      "Soap Opera",
+      "Reality",
+      "News",
+      "Drama",
+      "Western",
+      "War"
+    ]
+  }
+]

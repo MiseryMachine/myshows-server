@@ -1,5 +1,6 @@
 package com.rjs.myshows.server.domain.entity;
 
+import javax.persistence.*;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
@@ -11,13 +12,27 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class UserEntity extends BaseEntity implements User {
+//@Document(collection = "user")
+@Entity
+@Table(name = "user")
+public class UserEntity extends JpaBaseEntity implements User {
+	@Column(name = "username", length = 40, unique = true, nullable = false)
 	private String username;
+	@Column(name = "email", length = 80)
 	private String email;
+	@Column(name = "first_name", length = 40)
 	private String firstName;
+	@Column(name = "last_name", length = 40)
 	private String lastName;
-	private boolean enabled;
+	@Column(name = "enabled", nullable = false)
+	private boolean enabled = false;
+	@Column(name = "dob")
 	private LocalDate dateOfBirth;
+
+	@ElementCollection(fetch = FetchType.EAGER)
+	@CollectionTable(name = "user_role", joinColumns = @JoinColumn(name = "user_id"))
+	@Enumerated(value = EnumType.STRING)
+	@Column(name = "role")
 	private Set<Role> roles = new HashSet<>();
 
 	public UserEntity() {

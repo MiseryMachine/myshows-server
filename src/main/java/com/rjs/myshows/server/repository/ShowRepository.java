@@ -3,14 +3,17 @@ package com.rjs.myshows.server.repository;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.rjs.myshows.server.domain.entity.ShowEntity;
 
-public interface ShowRepository extends MongoRepository<ShowEntity, String> {
+public interface ShowRepository extends JpaRepository<ShowEntity, Long> {
 	Optional<ShowEntity> findByMdbId(String mdbId);
 	Optional<ShowEntity> findByImdbId(String imdbId);
 
 	List<ShowEntity> findByTitleLike(String title);
+	List<ShowEntity> findByTitleLike(String title, Sort sort);
 	List<ShowEntity> findByStarRating(int starRating);
+	List<ShowEntity> findByStarRating(int starRating, Sort sort);
 }
