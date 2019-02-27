@@ -22,10 +22,15 @@ import com.rjs.myshows.server.domain.entity.ShowTypeEntity;
 import com.rjs.myshows.server.service.ShowService;
 import com.rjs.myshows.server.service.ShowTypeService;
 import com.rjs.myshows.server.service.mdb.MdbService;
+import com.rjs.myshows.server.service.mdb.ShowSummary;
 import com.rjs.myshows.server.service.mdb.tmdb.domain.TmdbGenre;
-import com.rjs.myshows.server.service.mdb.tmdb.domain.TmdbShow;
-import com.rjs.myshows.server.service.mdb.tmdb.domain.TmdbShowDetail;
-import com.rjs.myshows.server.service.mdb.tmdb.domain.TmdbShowListing;
+import com.rjs.myshows.server.service.mdb.tmdb.domain.movie.MovieDetail;
+import com.rjs.myshows.server.service.mdb.tmdb.domain.movie.MovieListing;
+import com.rjs.myshows.server.service.mdb.tmdb.domain.movie.MovieRelease;
+import com.rjs.myshows.server.service.mdb.tmdb.domain.movie.MovieReleaseDate;
+import com.rjs.myshows.server.service.mdb.tmdb.domain.tv.ContentRating;
+import com.rjs.myshows.server.service.mdb.tmdb.domain.tv.TvDetail;
+import com.rjs.myshows.server.service.mdb.tmdb.domain.tv.TvListing;
 import com.rjs.myshows.server.util.UrlBuilder;
 import com.rjs.myshows.util.ImageUtil;
 import com.rjs.util.web.HttpUtil;
@@ -35,9 +40,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.rjs.myshows.domain.DomainConstants.MOVIE_TYPE;
+import static com.rjs.myshows.domain.DomainConstants.TV_TYPE;
+
 @Service("mdbService")
 @Profile("tmdb")
-public class TmdbService extends MdbService<TmdbShow> {
+public class TmdbService extends MdbService {
 	private final Logger logger = LoggerFactory.getLogger(TmdbService.class);
 	private final RestClientService restClient = new RestClientService(new RestTemplate());
 
@@ -59,98 +67,29 @@ public class TmdbService extends MdbService<TmdbShow> {
 	}
 
 	@Override
-	public List<TmdbShow> searchShows(String showTypeName, String title) {
-		List<TmdbShow> mdbShows = new ArrayList<>();
-		String[] urlParams = {
-			String.format("api_key=%s", tmdbProperties.getKey()),
-			String.format("query=%s", title),
-			String.format("language=%s", tmdbProperties.getLocale())
-		};
+	public List<ShowSummary> searchShows(String showTypeName, String title) {
+		switch (showTypeName) {
+			case MOVIE_TYPE:
+				return searchMovies(title);
 
-		String url = UrlBuilder.create(tmdbProperties.getUrl())
-			.addPath(tmdbProperties.getSearchPath())
-			.addPath(tmdbProperties.getShowTypePath(showTypeName))
-			.addPath("?")
-			.addPath(String.join("&", urlParams))
-			.getUrl();
-
-		try {
-			Optional<TmdbShowListing> showListing = consumeService(url, HttpMethod.GET);
-
-			if (showListing.isPresent()) {
-				mdbShows.addAll(showListing.get().results);
-				mdbShows.forEach(s -> {
-					s.posterPath = UrlBuilder.create(tmdbProperties.getImageUrl())
-						.addPath(tmdbProperties.getImageThumbPath())
-						.addPath(s.posterPath).getUrl();
-
-					if (StringUtils.isBlank(s.releaseDate)) {
-						s.releaseDate = "Unknown";
-					}
-				});
-			}
-		}
-		catch (WebServiceException e) {
-			logger.error("Error looking up shows.", e);
+			case TV_TYPE:
+				return searchTv(title);
 		}
 
-		return mdbShows;
+		return new ArrayList<>();
 	}
 
 	@Override
-	public Optional<ShowDto> addShow(String mdbId, String showTypeName) {
-		Optional<ShowEntity> showOpt = showService.findByMdbId(mdbId);
+	public Optional<ShowDto> addShow(String tmdbId, String showTypeName) {
+		switch (showTypeName) {
+			case MOVIE_TYPE:
+				return Optional.ofNullable(addMovie(tmdbId));
 
-		if (showOpt.isPresent()) {
-			return Optional.of(showService.convertToDto(showOpt.get()));
+			case TV_TYPE:
+				return Optional.ofNullable(addTv(tmdbId));
 		}
 
-		ShowDto show = null;
-		String[] urlParams = {
-			String.format("api_key=%s", tmdbProperties.getKey()),
-			String.format("language=%s", tmdbProperties.getLocale())
-		};
-
-		String url = UrlBuilder.create(tmdbProperties.getUrl())
-			.addPath(tmdbProperties.getSearchPath())
-			.addPath(tmdbProperties.getShowTypePath(showTypeName))
-			.addPath("/" + mdbId)
-			.addPath("?")
-			.addPath(String.join("&", urlParams))
-			.getUrl();
-
-		try {
-			Optional<TmdbShowDetail> tmdbShowOpt = consumeService(url, HttpMethod.GET);
-
-			if (tmdbShowOpt.isPresent() && tmdbShowOpt.get().id > -1) {
-				TmdbShowDetail tmdbShow = tmdbShowOpt.get();
-				Set<String> genres = convertGenres(tmdbShow.genres, showTypeName);
-				ShowEntity showEntity = new ShowEntity();
-				showEntity.setMdbId(String.valueOf(tmdbShow.id));
-				showEntity.setImdbId(tmdbShow.imdbId);
-				showEntity.setTitle(tmdbShow.title);
-				showEntity.setTagLine(tmdbShow.tagline);
-				showEntity.setDescription(tmdbShow.overview);
-				showEntity.setRuntime(tmdbShow.runtime);
-				showEntity.setShowType(showTypeName);
-				showEntity.setGenres(genres);
-
-				if (StringUtils.isNotBlank(tmdbShow.releaseDate)) {
-					showEntity.setReleaseDate(LocalDate.parse(tmdbShow.releaseDate, dateFormat));
-				}
-
-				showEntity = showService.save(showEntity);
-
-				downloadPosterImage(showEntity, tmdbShow.posterPath);
-
-				show = showService.convertToDto(showEntity);
-			}
-		}
-		catch (Exception e) {
-			logger.error(String.format("Error adding show: %s.", mdbId), e);
-		}
-
-		return Optional.ofNullable(show);
+		return Optional.empty();
 	}
 
 	@Override
@@ -177,6 +116,233 @@ public class TmdbService extends MdbService<TmdbShow> {
 		}
 
 		return new HashSet<>();
+	}
+
+	private List<ShowSummary> searchMovies(String title) {
+		String[] urlParams = {
+			String.format("api_key=%s", tmdbProperties.getKey()),
+			String.format("language=%s", tmdbProperties.getLocale()),
+			String.format("query=%s", title)
+		};
+
+		String url = UrlBuilder.create(tmdbProperties.getUrl())
+			.addPath(tmdbProperties.getSearchPath())
+			.addPath(tmdbProperties.getShowTypePath(MOVIE_TYPE))
+			.addPath("?")
+			.addPath(String.join("&", urlParams))
+			.getUrl();
+
+		List<ShowSummary> showSummaryList = new ArrayList<>();
+
+		try {
+			Optional<MovieListing> showListing = consumeService(url, HttpMethod.GET);
+
+			showListing.ifPresent(movie -> movie.results.forEach(s -> {
+				ShowSummary showSummary = new ShowSummary();
+				showSummary.id = String.valueOf(s.id);
+				showSummary.showType = MOVIE_TYPE;
+				showSummary.title = s.title;
+				showSummary.overview = s.overview;
+				showSummary.releaseDate = s.releaseDate;
+				showSummary.posterPath = UrlBuilder.create(tmdbProperties.getImageUrl())
+					.addPath(tmdbProperties.getImageThumbPath())
+					.addPath(s.posterPath).getUrl();
+
+				if (StringUtils.isBlank(showSummary.releaseDate)) {
+					showSummary.releaseDate = "Unknown";
+				}
+
+				showSummaryList.add(showSummary);
+			}));
+		}
+		catch (WebServiceException e) {
+			logger.error("Error looking up movies.", e);
+		}
+
+		return showSummaryList;
+	}
+
+	private ShowDto addMovie(String tmdbId) {
+		Optional<ShowEntity> showOpt = showService.findByMdbId(tmdbId);
+
+		if (showOpt.isPresent()) {
+			return showService.convertToDto(showOpt.get());
+		}
+
+		ShowDto show = null;
+		String[] urlParams = {
+			String.format("api_key=%s", tmdbProperties.getKey()),
+			String.format("language=%s", tmdbProperties.getLocale()),
+			"append_to_response=release_dates"
+		};
+
+		String url = UrlBuilder.create(tmdbProperties.getUrl())
+			.addPath(tmdbProperties.getSearchPath())
+			.addPath(tmdbProperties.getShowTypePath(MOVIE_TYPE))
+			.addPath("/" + tmdbId)
+			.addPath("?")
+			.addPath(String.join("&", urlParams))
+			.getUrl();
+
+		try {
+			Optional<MovieDetail> movieOpt = consumeService(url, HttpMethod.GET);
+
+			if (movieOpt.isPresent() && movieOpt.get().id > -1) {
+				MovieDetail movieDetail = movieOpt.get();
+				Set<String> genres = convertGenres(movieDetail.genres, MOVIE_TYPE);
+				ShowEntity showEntity = new ShowEntity();
+				showEntity.setMdbId(String.valueOf(movieDetail.id));
+				showEntity.setImdbId(movieDetail.imdbId);
+				showEntity.setTitle(movieDetail.title);
+				showEntity.setTagLine(movieDetail.tagline);
+				showEntity.setDescription(movieDetail.overview);
+				showEntity.setRuntime(movieDetail.runtime);
+				showEntity.setShowType(MOVIE_TYPE);
+				showEntity.setGenres(genres);
+
+				if (StringUtils.isNotBlank(movieDetail.releaseDate)) {
+					showEntity.setReleaseDate(LocalDate.parse(movieDetail.releaseDate, dateFormat));
+				}
+
+				// A little convoluted to get the movie rating.
+				if (movieDetail.releaseDates != null && movieDetail.releaseDates.results != null && !movieDetail.releaseDates.results.isEmpty()) {
+					List<MovieRelease> releases = movieDetail.releaseDates.results;
+
+					for (MovieRelease release : releases) {
+						if ("US".equals(release.isoName)) {
+							MovieReleaseDate releaseDate = release.releases.stream().filter(r -> r.type == 3).findFirst().orElse(null);
+							showEntity.setShowRating(releaseDate != null ? releaseDate.rating : "N/A");
+
+							break;
+						}
+					}
+				}
+
+				showEntity = showService.save(showEntity);
+
+				downloadPosterImage(showEntity, movieDetail.posterPath);
+
+				show = showService.convertToDto(showEntity);
+			}
+		}
+		catch (Exception e) {
+			logger.error(String.format("Error adding movie: %s.", tmdbId), e);
+		}
+
+		return show;
+	}
+
+	private List<ShowSummary> searchTv(String title) {
+		String[] urlParams = {
+			String.format("api_key=%s", tmdbProperties.getKey()),
+			String.format("language=%s", tmdbProperties.getLocale()),
+			String.format("query=%s", title)
+		};
+
+		String url = UrlBuilder.create(tmdbProperties.getUrl())
+			.addPath(tmdbProperties.getSearchPath())
+			.addPath(tmdbProperties.getShowTypePath(TV_TYPE))
+			.addPath("?")
+			.addPath(String.join("&", urlParams))
+			.getUrl();
+
+		List<ShowSummary> showSummaryList = new ArrayList<>();
+
+		try {
+			Optional<TvListing> showListing = consumeService(url, HttpMethod.GET);
+
+			showListing.ifPresent(tv -> tv.results.forEach(s -> {
+				ShowSummary showSummary = new ShowSummary();
+				showSummary.id = String.valueOf(s.id);
+				showSummary.showType = TV_TYPE;
+				showSummary.title = s.title;
+				showSummary.overview = s.overview;
+				showSummary.releaseDate = s.airDate;
+				showSummary.posterPath = UrlBuilder.create(tmdbProperties.getImageUrl())
+					.addPath(tmdbProperties.getImageThumbPath())
+					.addPath(s.posterPath).getUrl();
+
+				if (StringUtils.isBlank(showSummary.releaseDate)) {
+					showSummary.releaseDate = "Unknown";
+				}
+
+				showSummaryList.add(showSummary);
+			}));
+		}
+		catch (WebServiceException e) {
+			logger.error("Error looking up TV shows.", e);
+		}
+
+		return showSummaryList;
+	}
+
+	private ShowDto addTv(String tmdbId) {
+		Optional<ShowEntity> showOpt = showService.findByMdbId(tmdbId);
+
+		if (showOpt.isPresent()) {
+			return showService.convertToDto(showOpt.get());
+		}
+
+		ShowDto show = null;
+		String[] urlParams = {
+			String.format("api_key=%s", tmdbProperties.getKey()),
+			String.format("language=%s", tmdbProperties.getLocale()),
+			"append_to_response=content_ratings"
+		};
+
+		String url = UrlBuilder.create(tmdbProperties.getUrl())
+			.addPath(tmdbProperties.getSearchPath())
+			.addPath(tmdbProperties.getShowTypePath(TV_TYPE))
+			.addPath("/" + tmdbId)
+			.addPath("?")
+			.addPath(String.join("&", urlParams))
+			.getUrl();
+
+		try {
+			Optional<TvDetail> tvOpt = consumeService(url, HttpMethod.GET);
+
+			if (tvOpt.isPresent() && tvOpt.get().id > -1) {
+				TvDetail tvDetail = tvOpt.get();
+				Set<String> genres = convertGenres(tvDetail.genres, TV_TYPE);
+				ShowEntity showEntity = new ShowEntity();
+				showEntity.setMdbId(String.valueOf(tvDetail.id));
+				showEntity.setImdbId(null);
+				showEntity.setTitle(tvDetail.title);
+				showEntity.setTagLine(null);
+				showEntity.setDescription(tvDetail.overview);
+				showEntity.setRuntime(0);
+				showEntity.setShowType(TV_TYPE);
+				showEntity.setGenres(genres);
+
+				if (StringUtils.isNotBlank(tvDetail.airDate)) {
+					showEntity.setReleaseDate(LocalDate.parse(tvDetail.airDate, dateFormat));
+				}
+
+				// A little convoluted to get the TV rating.
+				if (tvDetail.contentRatingResults != null && tvDetail.contentRatingResults.results != null && !tvDetail.contentRatingResults.results.isEmpty()) {
+					List<ContentRating> contentRatings = tvDetail.contentRatingResults.results;
+
+					for (ContentRating contentRating : contentRatings) {
+						if ("US".equals(contentRating.isoName)) {
+							showEntity.setShowRating(contentRating.rating != null ? contentRating.rating : "N/A");
+
+							break;
+						}
+					}
+				}
+
+				showEntity = showService.save(showEntity);
+
+				downloadPosterImage(showEntity, tvDetail.posterPath);
+
+				show = showService.convertToDto(showEntity);
+			}
+		}
+		catch (Exception e) {
+			logger.error(String.format("Error adding TV show: %s.", tmdbId), e);
+		}
+
+		return show;
 	}
 
 	private void downloadPosterImage(ShowEntity show, String tmdbPosterPath) {

@@ -1,19 +1,16 @@
-package com.rjs.myshows.server.service.mdb.tmdb.domain;
-
-import java.util.ArrayList;
+package com.rjs.myshows.server.service.mdb.tmdb.domain.tv;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class TmdbShow {
+public class TvSummary {
 	public int id = -1;
+	@JsonProperty("name")
 	public String title = "";
 	public String overview = "";
 	@JsonProperty("poster_path")
 	public String posterPath = "";
-	@JsonProperty("release_date")
-	public String releaseDate = "";
-	@JsonProperty("genere_ids")
-	public ArrayList<Integer> genreIds = new ArrayList<>();
+	@JsonProperty("first_air_date")
+	public String airDate = "";
 }

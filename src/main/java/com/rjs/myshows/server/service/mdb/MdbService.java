@@ -8,7 +8,7 @@ import com.rjs.myshows.domain.dto.ShowDto;
 import com.rjs.myshows.server.config.AppProperties;
 import com.rjs.myshows.util.ImageUtil;
 
-public abstract class MdbService<SHOW> {
+public abstract class MdbService {
 	protected AppProperties appProperties;
 	protected ImageUtil imageUtil;
 
@@ -17,7 +17,7 @@ public abstract class MdbService<SHOW> {
 		this.imageUtil = imageUtil;
 	}
 
-	public abstract List<SHOW> searchShows(String showTypeName, String title);
+	public abstract List<ShowSummary> searchShows(String showTypeName, String title);
 	public abstract Optional<ShowDto> addShow(String mdbId, String showTypeName);
 	public abstract Set<String> getGenres(String showTypeName);
 
