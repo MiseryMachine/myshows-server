@@ -1,0 +1,13 @@
+tmdb:
+  api:
+#    key: "abc"
+    locale: en-US
+    url: https://api.themoviedb.org/3
+    image-url: http://image.tmdb.org/t/p
+    image-normal-path: /w500
+    image-thumb-path: /w92
+    genre-path: /genre
+    movie-path: /movie
+    tv-path: /tv
+    search-path: /search
+    list-path: /list

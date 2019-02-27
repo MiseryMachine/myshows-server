@@ -8,17 +8,18 @@ import java.util.Collection;
 
 import org.springframework.data.jpa.domain.Specification;
 
-public class ValueInSpecification<E> implements Specification<E> {
+public class ValueInSpecification<E, V> implements Specification<E> {
 	private final String key;
-	private final Collection values;
+	private final Collection<V> values;
 
-	public ValueInSpecification(String key, Collection values) {
+	public ValueInSpecification(String key, Collection<V> values) {
 		this.key = key;
 		this.values = values;
 	}
 
 	@Override
 	public Predicate toPredicate(Root<E> root, CriteriaQuery<?> criteriaQuery, CriteriaBuilder criteriaBuilder) {
-		return criteriaBuilder.in(root.get(key)).in(values);
+//		return criteriaBuilder.in(root.get(key)).in(values);
+		return root.get(key).in(values);
 	}
 }

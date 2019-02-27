@@ -46,6 +46,10 @@ public class ShowService extends AbstractService<ShowEntity, ShowDto> {
 		return showRepository.findByImdbId(imdbId);
 	}
 
+	public List<ShowEntity> findByTitleExact(String title) {
+		return showRepository.findByTitle(title);
+	}
+
 	public List<ShowEntity> findByTitleLike(String title) {
 		return showRepository.findByTitleLike("%" + title + "%", Sort.by("title").ascending());
 	}
@@ -94,7 +98,7 @@ public class ShowService extends AbstractService<ShowEntity, ShowDto> {
 
 		if (showFilter.getShowRatings() != null && !showFilter.getShowRatings().isEmpty()) {
 			// Add the show rating filter
-			ValueInSpecification<ShowEntity> showRatingSpec = new ValueInSpecification<>("showRating",
+			ValueInSpecification<ShowEntity, String> showRatingSpec = new ValueInSpecification<>("showRating",
 				showFilter.getShowRatings());
 
 			if (showSpecification != null) {
@@ -107,7 +111,7 @@ public class ShowService extends AbstractService<ShowEntity, ShowDto> {
 
 		if (showFilter.getMediaFormats() != null && !showFilter.getMediaFormats().isEmpty()) {
 			// Add the media format filter
-			ValueInSpecification<ShowEntity> mediaFormatSpec = new ValueInSpecification<>("mediaFormat",
+			ValueInSpecification<ShowEntity, String> mediaFormatSpec = new ValueInSpecification<>("mediaFormat",
 				showFilter.getMediaFormats());
 
 			if (showSpecification != null) {

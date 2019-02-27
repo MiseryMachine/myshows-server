@@ -30,6 +30,10 @@
 	<dependencies>
 		<dependency>
 			<groupId>com.rjs</groupId>
+			<artifactId>rjs-util</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.rjs</groupId>
 			<artifactId>myshows-common</artifactId>
 		</dependency>
 

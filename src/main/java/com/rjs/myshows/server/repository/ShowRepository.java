@@ -13,6 +13,8 @@ public interface ShowRepository extends JpaRepository<ShowEntity, Long>, JpaSpec
 	Optional<ShowEntity> findByMdbId(String mdbId);
 	Optional<ShowEntity> findByImdbId(String imdbId);
 
+	List<ShowEntity> findByTitle(String title);
+	List<ShowEntity> findByTitle(String title, Sort sort);
 	List<ShowEntity> findByTitleLike(String title);
 	List<ShowEntity> findByTitleLike(String title, Sort sort);
 	List<ShowEntity> findByStarRating(int starRating);

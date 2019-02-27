@@ -26,6 +26,6 @@ public class IsMemberSpecification<E> implements Specification<E> {
 			predicates[idx++] = criteriaBuilder.isMember(value, root.get(key));
 		}
 
-		return criteriaBuilder.or(predicates);
+		return criteriaBuilder.and(predicates);
 	}
 }
