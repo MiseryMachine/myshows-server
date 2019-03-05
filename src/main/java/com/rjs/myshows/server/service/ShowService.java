@@ -131,6 +131,10 @@ public class ShowService extends AbstractService<ShowEntity, ShowDto> {
 		return showRepository.save(show);
 	}
 
+	public void delete(Long showId) {
+		showRepository.deleteById(showId);
+	}
+
 	@Override
 	public ShowDto convertToDto(ShowEntity showEntity) {
 		return showEntity != null ? modelMapper.map(showEntity, ShowDto.class) : null;

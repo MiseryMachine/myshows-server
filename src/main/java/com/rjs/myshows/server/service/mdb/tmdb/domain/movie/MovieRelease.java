@@ -9,6 +9,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class MovieRelease {
 	@JsonProperty("iso_3166_1")
 	public String isoName;
-	@JsonProperty("releases")
+	@JsonProperty("release_dates")
 	public ArrayList<MovieReleaseDate> releases = new ArrayList<>();
 }

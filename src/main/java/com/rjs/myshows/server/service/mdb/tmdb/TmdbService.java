@@ -8,12 +8,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import org.springframework.context.annotation.Profile;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rjs.myshows.domain.dto.ShowDto;
 import com.rjs.myshows.server.config.AppProperties;
@@ -24,10 +22,7 @@ import com.rjs.myshows.server.service.ShowTypeService;
 import com.rjs.myshows.server.service.mdb.MdbService;
 import com.rjs.myshows.server.service.mdb.ShowSummary;
 import com.rjs.myshows.server.service.mdb.tmdb.domain.TmdbGenre;
-import com.rjs.myshows.server.service.mdb.tmdb.domain.movie.MovieDetail;
-import com.rjs.myshows.server.service.mdb.tmdb.domain.movie.MovieListing;
-import com.rjs.myshows.server.service.mdb.tmdb.domain.movie.MovieRelease;
-import com.rjs.myshows.server.service.mdb.tmdb.domain.movie.MovieReleaseDate;
+import com.rjs.myshows.server.service.mdb.tmdb.domain.movie.*;
 import com.rjs.myshows.server.service.mdb.tmdb.domain.tv.ContentRating;
 import com.rjs.myshows.server.service.mdb.tmdb.domain.tv.TvDetail;
 import com.rjs.myshows.server.service.mdb.tmdb.domain.tv.TvListing;
@@ -106,10 +101,13 @@ public class TmdbService extends MdbService {
 		String url = String.format("%s?%s", serviceUrl, String.join("&", urlParams));
 
 		try {
-			LinkedHashMap<String, Object> rootMap = consumeService(url, HttpMethod.GET);
-			String genreJson = jsonObjectMapper.writeValueAsString(rootMap.get("genres"));
-			List<TmdbGenre> mdbGenres = jsonObjectMapper.readValue(genreJson, new TypeReference<ArrayList<TmdbGenre>>(){});
-			return mdbGenres.stream().map(g -> g.name).collect(Collectors.toSet());
+			GenreListing rootMap = consumeService(url, HttpMethod.GET, GenreListing.class);
+//			String genreJson = jsonObjectMapper.writeValueAsString(rootMap.get("genres"));
+//			List<TmdbGenre> mdbGenres = jsonObjectMapper.readValue(genreJson, new TypeReference<ArrayList<TmdbGenre>>(){});
+
+			if (rootMap != null && rootMap.genres != null) {
+				return rootMap.genres.stream().map(g -> g.name).collect(Collectors.toSet());
+			}
 		}
 		catch (Exception e) {
 			logger.error("Error retrieving genres.", e);
@@ -135,25 +133,27 @@ public class TmdbService extends MdbService {
 		List<ShowSummary> showSummaryList = new ArrayList<>();
 
 		try {
-			Optional<MovieListing> showListing = consumeService(url, HttpMethod.GET);
+			MovieListing movieListing = consumeService(url, HttpMethod.GET, MovieListing.class);
 
-			showListing.ifPresent(movie -> movie.results.forEach(s -> {
-				ShowSummary showSummary = new ShowSummary();
-				showSummary.id = String.valueOf(s.id);
-				showSummary.showType = MOVIE_TYPE;
-				showSummary.title = s.title;
-				showSummary.overview = s.overview;
-				showSummary.releaseDate = s.releaseDate;
-				showSummary.posterPath = UrlBuilder.create(tmdbProperties.getImageUrl())
-					.addPath(tmdbProperties.getImageThumbPath())
-					.addPath(s.posterPath).getUrl();
+			if (movieListing != null) {
+				movieListing.results.forEach(m -> {
+					ShowSummary showSummary = new ShowSummary();
+					showSummary.id = String.valueOf(m.id);
+					showSummary.showType = MOVIE_TYPE;
+					showSummary.title = m.title;
+					showSummary.overview = m.overview;
+					showSummary.releaseDate = m.releaseDate;
+					showSummary.posterPath = UrlBuilder.create(tmdbProperties.getImageUrl())
+						.addPath(tmdbProperties.getImageThumbPath())
+						.addPath(m.posterPath).getUrl();
 
-				if (StringUtils.isBlank(showSummary.releaseDate)) {
-					showSummary.releaseDate = "Unknown";
-				}
+					if (StringUtils.isBlank(showSummary.releaseDate)) {
+						showSummary.releaseDate = "Unknown";
+					}
 
-				showSummaryList.add(showSummary);
-			}));
+					showSummaryList.add(showSummary);
+				});
+			}
 		}
 		catch (WebServiceException e) {
 			logger.error("Error looking up movies.", e);
@@ -177,7 +177,7 @@ public class TmdbService extends MdbService {
 		};
 
 		String url = UrlBuilder.create(tmdbProperties.getUrl())
-			.addPath(tmdbProperties.getSearchPath())
+//			.addPath(tmdbProperties.getSearchPath())
 			.addPath(tmdbProperties.getShowTypePath(MOVIE_TYPE))
 			.addPath("/" + tmdbId)
 			.addPath("?")
@@ -185,12 +185,12 @@ public class TmdbService extends MdbService {
 			.getUrl();
 
 		try {
-			Optional<MovieDetail> movieOpt = consumeService(url, HttpMethod.GET);
+			MovieDetail movieDetail = consumeService(url, HttpMethod.GET, MovieDetail.class);
 
-			if (movieOpt.isPresent() && movieOpt.get().id > -1) {
-				MovieDetail movieDetail = movieOpt.get();
+			if (movieDetail != null && movieDetail.id > -1) {
 				Set<String> genres = convertGenres(movieDetail.genres, MOVIE_TYPE);
 				ShowEntity showEntity = new ShowEntity();
+				showEntity.setMediaFormat("BLU-RAY");
 				showEntity.setMdbId(String.valueOf(movieDetail.id));
 				showEntity.setImdbId(movieDetail.imdbId);
 				showEntity.setTitle(movieDetail.title);
@@ -202,6 +202,10 @@ public class TmdbService extends MdbService {
 
 				if (StringUtils.isNotBlank(movieDetail.releaseDate)) {
 					showEntity.setReleaseDate(LocalDate.parse(movieDetail.releaseDate, dateFormat));
+					showEntity.setReleaseDateText(movieDetail.releaseDate);
+				}
+				else {
+					showEntity.setReleaseDateText("N/A");
 				}
 
 				// A little convoluted to get the movie rating.
@@ -213,7 +217,7 @@ public class TmdbService extends MdbService {
 							MovieReleaseDate releaseDate = release.releases.stream().filter(r -> r.type == 3).findFirst().orElse(null);
 							showEntity.setShowRating(releaseDate != null ? releaseDate.rating : "N/A");
 
-							break;
+//							break;
 						}
 					}
 				}
@@ -249,25 +253,27 @@ public class TmdbService extends MdbService {
 		List<ShowSummary> showSummaryList = new ArrayList<>();
 
 		try {
-			Optional<TvListing> showListing = consumeService(url, HttpMethod.GET);
+			TvListing showListing = consumeService(url, HttpMethod.GET, TvListing.class);
 
-			showListing.ifPresent(tv -> tv.results.forEach(s -> {
-				ShowSummary showSummary = new ShowSummary();
-				showSummary.id = String.valueOf(s.id);
-				showSummary.showType = TV_TYPE;
-				showSummary.title = s.title;
-				showSummary.overview = s.overview;
-				showSummary.releaseDate = s.airDate;
-				showSummary.posterPath = UrlBuilder.create(tmdbProperties.getImageUrl())
-					.addPath(tmdbProperties.getImageThumbPath())
-					.addPath(s.posterPath).getUrl();
+			if (showListing != null && showListing.results != null) {
+				showListing.results.forEach(s -> {
+					ShowSummary showSummary = new ShowSummary();
+					showSummary.id = String.valueOf(s.id);
+					showSummary.showType = TV_TYPE;
+					showSummary.title = s.title;
+					showSummary.overview = s.overview;
+					showSummary.releaseDate = s.airDate;
+					showSummary.posterPath = UrlBuilder.create(tmdbProperties.getImageUrl())
+						.addPath(tmdbProperties.getImageThumbPath())
+						.addPath(s.posterPath).getUrl();
 
-				if (StringUtils.isBlank(showSummary.releaseDate)) {
-					showSummary.releaseDate = "Unknown";
-				}
+					if (StringUtils.isBlank(showSummary.releaseDate)) {
+						showSummary.releaseDate = "Unknown";
+					}
 
-				showSummaryList.add(showSummary);
-			}));
+					showSummaryList.add(showSummary);
+				});
+			}
 		}
 		catch (WebServiceException e) {
 			logger.error("Error looking up TV shows.", e);
@@ -299,10 +305,9 @@ public class TmdbService extends MdbService {
 			.getUrl();
 
 		try {
-			Optional<TvDetail> tvOpt = consumeService(url, HttpMethod.GET);
+			TvDetail tvDetail = consumeService(url, HttpMethod.GET, TvDetail.class);
 
-			if (tvOpt.isPresent() && tvOpt.get().id > -1) {
-				TvDetail tvDetail = tvOpt.get();
+			if (tvDetail != null && tvDetail.id > -1) {
 				Set<String> genres = convertGenres(tvDetail.genres, TV_TYPE);
 				ShowEntity showEntity = new ShowEntity();
 				showEntity.setMdbId(String.valueOf(tvDetail.id));
@@ -394,10 +399,12 @@ public class TmdbService extends MdbService {
 		return genres;
 	}
 
-	private <E> E consumeService(String url, HttpMethod method) throws WebServiceException {
+	private <E> E consumeService(String url, HttpMethod method, Class<E> responseClass) throws WebServiceException {
 		HttpEntity<String> httpEntity = HttpUtil.createHttpEntity(null, "", MediaType.APPLICATION_JSON_VALUE);
+//		ResponseEntity<E> responseEntity = restClient.exchange(httpEntity, url, method,
+//			new ParameterizedTypeReference<E>(){}, new HashMap<>());
 		ResponseEntity<E> responseEntity = restClient.exchange(httpEntity, url, method,
-			new ParameterizedTypeReference<E>(){}, new HashMap<>());
+			responseClass, new HashMap<>());
 
 		if (responseEntity.getStatusCode() != HttpStatus.OK) {
 			throw new WebServiceException(
