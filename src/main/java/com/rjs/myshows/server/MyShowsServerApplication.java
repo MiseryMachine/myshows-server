@@ -4,11 +4,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class MyshowsServerApplication {
-
+public class MyShowsServerApplication {
 	public static void main(String[] args) {
-		SpringApplication.run(MyshowsServerApplication.class, args);
+		SpringApplication.run(MyShowsServerApplication.class, args);
 	}
-
 }
 

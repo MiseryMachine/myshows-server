@@ -1,6 +1,3 @@
-my-shows:
-  date-pattern: yyyy-MM-dd
-  local-file-path: abc
 server:
   port: 5000
   servlet:

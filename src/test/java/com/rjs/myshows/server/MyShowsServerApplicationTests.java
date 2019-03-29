@@ -10,7 +10,7 @@ import org.junit.runner.RunWith;
 @Ignore
 @RunWith(SpringRunner.class)
 @SpringBootTest
-public class MyshowsServerApplicationTests {
+public class MyShowsServerApplicationTests {
 
 	@Test
 	public void contextLoads() {

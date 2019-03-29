@@ -12,8 +12,8 @@ import org.springframework.core.io.Resource;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rjs.myshows.domain.dto.ShowDto;
-import com.rjs.myshows.domain.dto.ShowTypeDto;
+import com.rjs.myshows.server.domain.dto.ShowDto;
+import com.rjs.myshows.server.domain.dto.ShowTypeDto;
 import com.rjs.myshows.server.domain.entity.ShowEntity;
 import com.rjs.myshows.server.domain.entity.ShowTypeEntity;
 import com.rjs.myshows.server.service.ShowService;

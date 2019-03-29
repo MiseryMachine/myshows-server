@@ -7,8 +7,8 @@ import java.util.Set;
 
 import org.springframework.web.bind.annotation.*;
 
-import com.rjs.myshows.domain.dto.ShowDto;
-import com.rjs.myshows.domain.dto.ShowTypeDto;
+import com.rjs.myshows.server.domain.dto.ShowDto;
+import com.rjs.myshows.server.domain.dto.ShowTypeDto;
 import com.rjs.myshows.server.domain.entity.ShowEntity;
 import com.rjs.myshows.server.domain.entity.ShowTypeEntity;
 import com.rjs.myshows.server.service.ShowService;
